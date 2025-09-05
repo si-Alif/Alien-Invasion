@@ -4,6 +4,7 @@ import pygame
 
 from settings import Settings
 from ship import Ship
+from bullet import Bullet
 
 class AlienInvasion :
     """Overall Class to manage the entire application's assets and functionalities ."""
@@ -28,6 +29,7 @@ class AlienInvasion :
 
         pygame.display.set_caption("Alien Invasion")
         self.ship = Ship(self)
+        self.bullets = pygame.sprite.Group()
 
 
     # Loop which runs the game in an infinite loop until we reach a certain threshold .
@@ -35,8 +37,10 @@ class AlienInvasion :
         """Entry point function to the game"""
         while True :
             self._check_events()
-            self._update_screen()
             self.ship.update()
+            self.bullets.update()
+            self._update_bullets()
+            self._update_screen()
             # here the tick method takes one argument which is the frame of the game that we want to maintain . This simply means the game will run at 60 frames per second or from the codes perspective this loop will run 60 times per second
             self.clock.tick(60)
 
@@ -58,6 +62,9 @@ class AlienInvasion :
         """Update images on the screen and get to the most recent state of the game"""
         self.screen.fill(self.settings.bg_color)
 
+        # iterate through all the active bullets and draw their most recent state on the screen
+        for bullets in self.bullets.sprites() :
+            bullets.draw_bullet()
         # update images
         self.ship.blitme()
 
@@ -73,6 +80,8 @@ class AlienInvasion :
             self.ship.moving_left = True
         elif event.key == pygame.K_q :
             sys.exit()
+        elif event.key == pygame.K_SPACE :
+            self._fire_bullet()
 
     def _check_keyUP_event(self , event) :
         """Checks for key release events"""
@@ -80,6 +89,18 @@ class AlienInvasion :
             self.ship.moving_right = False
         elif event.key == pygame.K_LEFT :
             self.ship.moving_left = False
+
+    def _fire_bullet(self) :
+        """Fire a new bullet on keydown of spacebar and add it to the bullets group"""
+        if len(self.bullets) < self.settings.bullets_allowed :
+            new_bullet = Bullet(self)
+            self.bullets.add(new_bullet)
+    def _update_bullets(self) :
+        """Update the position of the bullets and get rid of the old bullets"""
+        self.bullets.update()
+        for bullet in self.bullets.copy() :
+            if bullet.rect.bottom <= 0 :
+                self.bullets.remove(bullet)
 
 #  If the entry is the main menu , then we create an instance of the class and call the run_game method
 if __name__ == "__main__" :
