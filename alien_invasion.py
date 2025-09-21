@@ -5,6 +5,7 @@ import pygame
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
+from alien import Alien
 
 class AlienInvasion :
     """Overall Class to manage the entire application's assets and functionalities ."""
@@ -21,7 +22,6 @@ class AlienInvasion :
         # passed the first positional argument co-ordinate , a tuple for the width and height
         # 1️⃣ Window mode
         self.screen = pygame.display.set_mode((self.settings.screen_width , self.settings.screen_height))
-
         # 2️⃣Fullscreen mode
         # self.screen = pygame.display.set_mode((0 ,0) , pygame.FULLSCREEN)
         # self.settings.screen_width = self.screen.get_rect().width
@@ -29,8 +29,9 @@ class AlienInvasion :
 
         pygame.display.set_caption("Alien Invasion")
         self.ship = Ship(self)
+        self.aliens = pygame.sprite.Group()
         self.bullets = pygame.sprite.Group()
-
+        self._create_fleet()
 
     # Loop which runs the game in an infinite loop until we reach a certain threshold .
     def run_game(self) :
@@ -39,12 +40,13 @@ class AlienInvasion :
             self._check_events()
             self.ship.update()
             self.bullets.update()
+            self._update_aliens()
             self._update_bullets()
             self._update_screen()
             # here the tick method takes one argument which is the frame of the game that we want to maintain . This simply means the game will run at 60 frames per second or from the codes perspective this loop will run 60 times per second
             self.clock.tick(60)
-
     # ⭐ Helper methods
+    # ✅ Related to Ship & Alien_Invasion class
     def _check_events(self) :
         """A helper method to check for new events"""
         # pygame catches all the events that occur since the last iteration and stores them in a list via the event.get() method
@@ -67,6 +69,8 @@ class AlienInvasion :
             bullets.draw_bullet()
         # update images
         self.ship.blitme()
+        # Draw tha aliens group on the screen
+        self.aliens.draw(self.screen)
 
         # update the screen
         # Redraw the screen during each pass through the loop . This is used to tell the pygame "Hey , redraw the screen with the most recent state of the game"
@@ -90,6 +94,7 @@ class AlienInvasion :
         elif event.key == pygame.K_LEFT :
             self.ship.moving_left = False
 
+# ✅ Related to bullets
     def _fire_bullet(self) :
         """Fire a new bullet on keydown of spacebar and add it to the bullets group"""
         if len(self.bullets) < self.settings.bullets_allowed :
@@ -101,6 +106,51 @@ class AlienInvasion :
         for bullet in self.bullets.copy() :
             if bullet.rect.bottom <= 0 :
                 self.bullets.remove(bullet)
+
+    # ✅ Related to aliens
+    def _create_fleet(self) :
+        """Create the fleet of aliens"""
+        alien = Alien(self)
+        alien_width  , alien_height = alien.rect.size
+        current_x = alien_width
+        current_y = alien_height
+        while current_y < (self.settings.screen_height - 3 * alien_height) :
+            while current_x < (self.settings.screen_width - 2 * alien_width) :
+                self._create_alien(current_x , current_y)
+                current_x += 2 * alien_width
+
+            current_x = alien_width
+            current_y += 2 * alien_height
+
+    def _create_alien(self , x_position , y_position ) :
+        """Create an alien"""
+        new_alien = Alien(self)
+        new_alien.alien_horizontal_dimension = x_position
+        new_alien.alien_vertical_dimension = y_position
+        new_alien.rect.x = x_position
+        new_alien.rect.y = y_position
+        self.aliens.add(new_alien)
+
+    def _update_aliens(self) :
+        """Update the position of the aliens"""
+        self._check_fleet_edges()
+        self.aliens.update()
+
+    def _check_fleet_edges(self) :
+        """Respond appropriately if any aliens have reached an edge"""
+        for alien in self.aliens.sprites() :
+            if alien.check_edges() :
+                self._change_fleet_direction()
+                break
+
+    def _change_fleet_direction(self) :
+        """Drop the entire fleet and change the fleet's direction"""
+        for alien in self.aliens.sprites() :
+            alien.rect.y += self.settings.fleet_drop_speed
+
+        self.settings.fleet_direction *= -1
+
+
 
 #  If the entry is the main menu , then we create an instance of the class and call the run_game method
 if __name__ == "__main__" :
